@@ -153,7 +153,7 @@ def navigate_with_avoidance(robot, x_target, y_target):
         if obstructed and math.hypot(new_target_x-x_current, new_target_y-y_target)>10 and math.hypot(new_target_x-x_current, new_target_y-y_target):
             print("Obstacle found at %f, %f", wall[0], wall[1])
             print("New partial target at %f, %f", new_target_x, new_target_y)
-            navigate_with_avoidance(robot, new_target_x, new_target_y, x_current, y_current)
+            navigate_with_avoidance(robot, new_target_x, new_target_y)
             x_current, y_current = new_target_x, new_target_y
 
     # Initialise tracking
@@ -198,7 +198,7 @@ def navigate_with_avoidance(robot, x_target, y_target):
             obstructed, new_target_x, new_target_y = calculate_next_target(walls[-1][0], walls[-1][1], x_current, y_current, x_target, y_target)
             if obstructed and math.hypot(new_target_x-x_current, new_target_y-y_target)>10:
                 print("New partial target at %f, %f", new_target_x, new_target_y)
-                navigate_with_avoidance(robot, new_target_x, new_target_y, x_current, y_current)
+                navigate_with_avoidance(robot, new_target_x, new_target_y)
                 x_current, y_current = get_current_pos(robot)
                 add_position(x_current, y_current)
             
@@ -519,7 +519,7 @@ def save_cube(robot: cozmo.robot.Robot, cubeID):
     robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=0.2)
 
     cubes[cubeID][0] = False
-    cubes[cubeID][1] = None
+    cubes[cubeID][1] = (0,0)
 
 def rescue(robot: cozmo.robot.Robot):
     create_cozmo_walls(robot)
@@ -545,7 +545,7 @@ def rescue(robot: cozmo.robot.Robot):
 
             cubeIDs = (cozmo.objects.LightCube1Id,cozmo.objects.LightCube2Id,cozmo.objects.LightCube3Id)
             for cubeID in cubeIDs: 
-                if cubes[cubeID][0] == True:
+                if cubes[cubeID][0] == True and math.hypot(cubes[cubeID][1].x(), cubes[cubeID][1].y()) > TOLERANCE_NAVIGATION:
                     print("Rescue cube " + str(cubeID))
                     save_cube(robot, cubeID)
 
