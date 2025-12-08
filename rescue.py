@@ -12,14 +12,14 @@ from frame2d import Frame2D
 WHEEL_SPEED = 250
 DISTANCE_PER_MOVE = 100
 CALIBRATION_TIME = 1.0
-IMAGE_DIFF_THRESHOLD = 8
+IMAGE_DIFF_THRESHOLD = 0
 CALIBRATED_CONSTANT = 2.25
-TOLERANCE_NAVIGATION = 25
+TOLERANCE_NAVIGATION = 15
 
 WALL_RADIUS=100
 WALL_THRESHOLD = 50
 ANGLE_THRESHOLD = 0.05
-MIN_ROTATION_SEC = 0.30  
+MIN_ROTATION_SEC = 0.25  
 
 
 #Tracking variables
@@ -224,7 +224,7 @@ def rotation(robot: cozmo.robot.Robot, angle):
     #debug
     attempts = 0
 
-    move_duration_2pi = 3.0  
+    move_duration_2pi = 2.5  
     target = get_current_heading(robot) + angle
     print("Target: " + str(target))
 
