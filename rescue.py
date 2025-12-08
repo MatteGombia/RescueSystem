@@ -14,6 +14,7 @@ DISTANCE_PER_MOVE = 100
 CALIBRATION_TIME = 1.0
 IMAGE_DIFF_THRESHOLD = 8
 CALIBRATED_CONSTANT = 2.25
+TOLERANCE_NAVIGATION = 25
 
 WALL_RADIUS=100
 WALL_THRESHOLD = 50
@@ -134,7 +135,7 @@ def calculate_next_target(px, py, x1, y1, x2, y2):
     return True, target_x, target_y
 
 def navigate_with_avoidance(robot, x_target, y_target):
-    tolerance = 50
+    
     max_attempts = 40
     attempts = 0
     
@@ -169,7 +170,7 @@ def navigate_with_avoidance(robot, x_target, y_target):
         robot_heading = math.atan2(dy, dx)
 
         print(f"Initial: Distance {distance:.0f}mm, Angle {math.degrees(robot_heading):.0f}°")
-        rotation(robot, radians(robot_heading - get_current_heading(robot)))
+        rotation(robot, robot_heading - get_current_heading(robot))
         time.sleep(0.2)
 
         print(f"\n--- Attempt {attempts + 1} ---")
@@ -177,7 +178,7 @@ def navigate_with_avoidance(robot, x_target, y_target):
         print(f"Current heading: {math.degrees(robot_heading):.0f}°") 
         print(f"Distance to target: {distance:.0f}mm")
         
-        if distance < tolerance:
+        if distance < TOLERANCE_NAVIGATION:
             print("Target reached!")
             return True
         
@@ -318,7 +319,7 @@ def draw_map(robot: cozmo.robot.Robot):
         path_xs = [p[0] for p in path]
         path_ys = [p[1] for p in path]
         ax.plot(path_xs, path_ys, 'b-', alpha=0.5)
-    for (x,y) in path:
+    for (x,y) in map.keys():
         circle = plt.Circle((x, y), RADIUS_CIRCLES, color='g')
         ax.add_patch(circle)
 
@@ -386,7 +387,7 @@ def scan_for_cubes(robot: cozmo.robot.Robot):
         
         #Turn to next scan position
         if step < steps - 1:  #Don't turn on the last step
-            rotation(robot, radians(step_angle))
+            rotation(robot, math.radians(step_angle))
             time.sleep(0.1)
             draw_map(robot)
     
@@ -515,7 +516,7 @@ def save_cube(robot: cozmo.robot.Robot, cubeID):
     navigate_with_avoidance(robot, 0, 0)
     path.append((0, 0))
     robot.set_lift_height(0.0).wait_for_completed()
-    robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=1.0)
+    robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=0.2)
 
     cubes[cubeID][0] = False
     cubes[cubeID][1] = None
