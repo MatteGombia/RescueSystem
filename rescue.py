@@ -510,9 +510,10 @@ def print_stats():
 def save_cube(robot: cozmo.robot.Robot, cubeID):
     global cubes
     navigate_with_avoidance(robot, cubes[cubeID][1].x(), cubes[cubeID][1].y())
+    path.append((cubes[cubeID][1].x(), cubes[cubeID][1].y()))
     robot.set_lift_height(1.0).wait_for_completed()
     navigate_with_avoidance(robot, 0, 0)
-
+    path.append((0, 0))
     robot.set_lift_height(0.0).wait_for_completed()
     robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=1.0)
 
@@ -539,6 +540,8 @@ def rescue(robot: cozmo.robot.Robot):
             time.sleep(0.5)
 
             last_position_x, last_position_y = get_current_pos(robot)
+            path.append((last_position_x, last_position_y))
+
             cubeIDs = (cozmo.objects.LightCube1Id,cozmo.objects.LightCube2Id,cozmo.objects.LightCube3Id)
             for cubeID in cubeIDs: 
                 if cubes[cubeID][0] == True:
@@ -547,7 +550,7 @@ def rescue(robot: cozmo.robot.Robot):
 
             possible_map_positions=add_reachable_position_to_map(robot, (last_position_x, last_position_y))
 
-            path.append((last_position_x, last_position_y))
+            
             #Update map with positions
             map[(last_position_x, last_position_y)] = possible_map_positions
 
