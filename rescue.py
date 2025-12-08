@@ -414,12 +414,12 @@ def _distance_point_to_segment(px, py, x1, y1, x2, y2):
     return math.hypot(px - cx, py - cy)
 
 
-def is_path_blocked(start_f: Frame2D, end_f, obstacles_list, clearance_mm=50.0):
+def is_path_blocked(start_f, end_f, obstacles_list, clearance_mm=50.0):
     """Check whether any obstacle in obstacles_list lies within clearance_mm
     (plus obstacle radius if available) of the straight-line segment from
     start_f to end_f. Returns (blocked: bool, obstacle, distance_mm).
     """
-    sx, sy = start_f.x(), start_f.y()
+    sx, sy = start_f[0], start_f[1]
     ex, ey = end_f[0], end_f[1]
 
     min_dist = float('inf')
@@ -435,18 +435,18 @@ def is_path_blocked(start_f: Frame2D, end_f, obstacles_list, clearance_mm=50.0):
         return True, min_dist
     return False, None
     
-def add_reachable_position_to_map(robot: cozmo.robot.Robot):
-    robotPose = Frame2D.fromPose(robot.pose)
+def add_reachable_position_to_map(robot: cozmo.robot.Robot, current_position):
+    
     possible_map_positions = [
-        (robotPose.x() + MOVE_DISTANCE, robotPose.y()),
-        (robotPose.x() - MOVE_DISTANCE, robotPose.y()),
-        (robotPose.x(), robotPose.y() + MOVE_DISTANCE),
-        (robotPose.x(), robotPose.y() - MOVE_DISTANCE)
+        (current_position[0] + MOVE_DISTANCE, current_position[1]),
+        (current_position[0] - MOVE_DISTANCE, current_position[1]),
+        (current_position[0], current_position[1] + MOVE_DISTANCE),
+        (current_position[0], current_position[1] - MOVE_DISTANCE)
     ]
     max_distance = 0  # Max distance Cozmo can travel in one go
     default_position = None
     for position in possible_map_positions:
-        blocked, distance = is_path_blocked(robotPose, position, walls, clearance_mm=WALL_RADIUS)
+        blocked, distance = is_path_blocked(current_position, position, walls, clearance_mm=WALL_RADIUS)
         
         if distance is not None and distance > max_distance:
             max_distance = distance
@@ -510,7 +510,6 @@ def print_stats():
 def save_cube(robot: cozmo.robot.Robot, cubeID):
     global cubes
     navigate_with_avoidance(robot, cubes[cubeID][1].x(), cubes[cubeID][1].y())
-    last_position_x, last_position_y = get_current_pos(robot)
     robot.set_lift_height(1.0).wait_for_completed()
     navigate_with_avoidance(robot, 0, 0)
 
@@ -519,8 +518,6 @@ def save_cube(robot: cozmo.robot.Robot, cubeID):
 
     cubes[cubeID][0] = False
     cubes[cubeID][1] = None
-
-    navigate_with_avoidance(robot, last_position_x, last_position_y)
 
 def rescue(robot: cozmo.robot.Robot):
     create_cozmo_walls(robot)
@@ -541,19 +538,18 @@ def rescue(robot: cozmo.robot.Robot):
             scan_for_cubes(robot)
             time.sleep(0.5)
 
+            last_position_x, last_position_y = get_current_pos(robot)
             cubeIDs = (cozmo.objects.LightCube1Id,cozmo.objects.LightCube2Id,cozmo.objects.LightCube3Id)
             for cubeID in cubeIDs: 
                 if cubes[cubeID][0] == True:
                     print("Rescue cube " + str(cubeID))
                     save_cube(robot, cubeID)
 
-            x_current, y_current = get_current_pos(robot)
+            possible_map_positions=add_reachable_position_to_map(robot, (last_position_x, last_position_y))
 
-            possible_map_positions=add_reachable_position_to_map(robot)
-
-            path.append((x_current, y_current))
+            path.append((last_position_x, last_position_y))
             #Update map with positions
-            map[(x_current, y_current)] = possible_map_positions
+            map[(last_position_x, last_position_y)] = possible_map_positions
 
             #go to next unseen position
             target = choose_next_position(possible_map_positions)
