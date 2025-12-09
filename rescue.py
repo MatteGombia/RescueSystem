@@ -446,6 +446,7 @@ def add_reachable_position_to_map(robot: cozmo.robot.Robot, current_position):
     ]
     max_distance = 0  # Max distance Cozmo can travel in one go
     default_position = None
+    valid_positions = []
     for position in possible_map_positions:
         blocked, distance = is_path_blocked(current_position, position, walls, clearance_mm=WALL_RADIUS)
         
@@ -455,12 +456,14 @@ def add_reachable_position_to_map(robot: cozmo.robot.Robot, current_position):
 
         if blocked:
             print("Path to position %s is BLOCKED by an obstacle." % str(position))
-            possible_map_positions.remove(position)
+            continue
+        
+        valid_positions.append(position)
 
-    if default_position is not None and len(possible_map_positions) == 0:
-        possible_map_positions.insert(0, default_position)
+    if default_position is not None and len(valid_positions) == 0:
+        valid_positions.append(default_position)
 
-    return possible_map_positions
+    return valid_positions
 
 def isSeen(position):
     for map_key in map.keys():
@@ -520,7 +523,7 @@ def save_cube(robot: cozmo.robot.Robot, cubeID):
     path.append((0, 0))
     robot.set_lift_height(0.0).wait_for_completed()
     robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=0.2)
-
+    draw_map(robot)
     cubes[cubeID][0] = False
     cubes[cubeID][1] = (0,0)
 
