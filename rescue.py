@@ -446,6 +446,7 @@ def add_reachable_position_to_map(robot: cozmo.robot.Robot, current_position):
     ]
     max_distance = 0  # Max distance Cozmo can travel in one go
     default_position = None
+    valid_positions = []
     for position in possible_map_positions:
         blocked, distance = is_path_blocked(current_position, position, walls, clearance_mm=WALL_RADIUS)
         
@@ -455,20 +456,25 @@ def add_reachable_position_to_map(robot: cozmo.robot.Robot, current_position):
 
         if blocked:
             print("Path to position %s is BLOCKED by an obstacle." % str(position))
-            possible_map_positions.remove(position)
+            continue
+        
+        valid_positions.append(position)
 
-    if default_position is not None and len(possible_map_positions) == 0:
-        possible_map_positions.insert(0, default_position)
+    if default_position is not None and len(valid_positions) == 0:
+        valid_positions.append(default_position)
 
-    return possible_map_positions
+    return valid_positions
+
+def isSeen(position):
+    for map_key in map.keys():
+            if position[0] > map_key[0]-RANGE_MAP_KEY and position[0] < map_key[0]+RANGE_MAP_KEY and position[1] > map_key[1]-RANGE_MAP_KEY and position[1] < map_key[1]+RANGE_MAP_KEY:
+                return True, map_key
+    return False, None
 
 def choose_next_position(possible_map_positions):
     for position in possible_map_positions:
-        position_seen = False
         print("Possible position to explore: " + str(position))
-        for map_key in map.keys():
-            if position[0] > map_key[0]-RANGE_MAP_KEY and position[0] < map_key[0]+RANGE_MAP_KEY and position[1] > map_key[1]-RANGE_MAP_KEY and position[1] < map_key[1]+RANGE_MAP_KEY:
-                position_seen = True
+        position_seen, _ = isSeen(position)
         if(not position_seen):
             return position
     return possible_map_positions[0]
@@ -517,7 +523,7 @@ def save_cube(robot: cozmo.robot.Robot, cubeID):
     path.append((0, 0))
     robot.set_lift_height(0.0).wait_for_completed()
     robot.drive_wheels(-WHEEL_SPEED, -WHEEL_SPEED, duration=0.2)
-
+    draw_map(robot)
     cubes[cubeID][0] = False
     cubes[cubeID][1] = (0,0)
 
@@ -537,23 +543,28 @@ def rescue(robot: cozmo.robot.Robot):
     
     try:
         while True:
-            scan_for_cubes(robot)
-            time.sleep(0.5)
-
             last_position_x, last_position_y = get_current_pos(robot)
-            path.append((last_position_x, last_position_y))
+            position_seen, map_key = isSeen((last_position_x, last_position_y))
+            if(not position_seen):
+                scan_for_cubes(robot)
+                time.sleep(0.5)
 
-            cubeIDs = (cozmo.objects.LightCube1Id,cozmo.objects.LightCube2Id,cozmo.objects.LightCube3Id)
-            for cubeID in cubeIDs: 
-                if cubes[cubeID][0] == True and math.hypot(cubes[cubeID][1].x(), cubes[cubeID][1].y()) > TOLERANCE_NAVIGATION:
-                    print("Rescue cube " + str(cubeID))
-                    save_cube(robot, cubeID)
+                path.append((last_position_x, last_position_y))
 
-            possible_map_positions=add_reachable_position_to_map(robot, (last_position_x, last_position_y))
+                cubeIDs = (cozmo.objects.LightCube1Id,cozmo.objects.LightCube2Id,cozmo.objects.LightCube3Id)
+                for cubeID in cubeIDs: 
+                    if cubes[cubeID][0] == True and math.hypot(cubes[cubeID][1].x(), cubes[cubeID][1].y()) > TOLERANCE_NAVIGATION:
+                        print("Rescue cube " + str(cubeID))
+                        save_cube(robot, cubeID)
 
+                possible_map_positions=add_reachable_position_to_map(robot, (last_position_x, last_position_y))
+
+                
+                #Update map with positions
+                map[(last_position_x, last_position_y)] = possible_map_positions
             
-            #Update map with positions
-            map[(last_position_x, last_position_y)] = possible_map_positions
+            else:
+                possible_map_positions = map[map_key]
 
             #go to next unseen position
             target = choose_next_position(possible_map_positions)
@@ -569,6 +580,7 @@ def rescue(robot: cozmo.robot.Robot):
         robot.drive_wheels(0, 0)
         robot.set_lift_height(0.0).wait_for_completed()
         print_stats()
+        print("Final map: " + str(map))
         plt.ioff()
         plt.show()
 
